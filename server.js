@@ -48,12 +48,15 @@ app.use(cors());
 
 const utilisateurRoutes = require('./routes/routeUtilisateur');
 const adminRoutes = require('./routes/routeAdmin');
+const allHotels = require('./routes/routeHotel');
+
 app.use('/api/utilisateurs', utilisateurRoutes);
 
 
 app.use("/api/admins", adminRoutes);
 
-
+app.use("/api/hotels",  allHotels)
+ 
 // Route de test
 app.get('/', (req, res) => {
   res.send('Bienvenue sur l\'API Utilisateurs');

@@ -67,7 +67,7 @@ exports.connexion = async (req, res) => {
       token,
       utilisateur: {
         id: utilisateur._id,
-        nom: utilisateur.nom,
+        motDePasse: utilisateur.motDePasse,
         email: utilisateur.email
       }
     });

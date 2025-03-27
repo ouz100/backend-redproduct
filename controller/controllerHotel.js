@@ -1,6 +1,4 @@
-// controller/controllerHotel.
-// controller/controllerHotel.js
-const Hotel = require('../models/Hotel'); // Vous devrez créer ce modèle
+const Hotel = require('../models/modelHotel'); // Modèle d'hôtel
 const fs = require('fs');
 const path = require('path');
 
@@ -29,39 +27,44 @@ exports.getHotelById = async (req, res) => {
 
 // Créer un nouvel hôtel
 exports.createHotel = async (req, res) => {
-  try {
-    const { name, address, email, phoneNumber, pricePerNight, currency } = req.body;
-    
-    // Vérifier si l'image est fournie
-    let imagePath = null;
-    if (req.file) {
-      imagePath = `/uploads/hotels/${req.file.filename}`;
+    try {
+      const { name, address, email, phoneNumber, pricePerNight, currency, image } = req.body;
+      consol.log('image :',image)
+      // Vérification des champs nécessaires
+      if (!name || !address || !email || !phoneNumber || !pricePerNight || !currency) {
+        return res.status(400).json({ message: "Tous les champs sont obligatoires" });
+      }
+  
+      // Vérifier si l'image est fournie en texte (URL ou chemin)
+      const imagePath = image || 'default_image_url.jpg';  // Si aucune image n'est fournie, on met une chaîne vide
+      console.log("Données de l'hôtel :", { name, address, email, phoneNumber, pricePerNight, currency, imagePath });
+  
+      // Créer le nouvel hôtel
+      const newHotel = new Hotel({
+        name,
+        address,
+        email,
+        phoneNumber,
+        pricePerNight: parseFloat(pricePerNight),
+        currency,
+        image: imagePath, // L'image est maintenant un texte (URL)
+        price: `${pricePerNight} ${currency} par nuit`
+      });
+  
+      // Sauvegarder l'hôtel dans la base de données
+      const savedHotel = await newHotel.save();
+      res.status(201).json(savedHotel);
+    } catch (error) {
+      console.error("Erreur lors de la création de l'hôtel :", error); // Ajouter des logs d'erreur
+      res.status(500).json({ message: "Erreur lors de la création de l'hôtel", error: error.message });
     }
-
-    // Créer le nouvel hôtel
-    const newHotel = new Hotel({
-      name,
-      address,
-      email,
-      phoneNumber,
-      pricePerNight: parseFloat(pricePerNight),
-      currency,
-      image: imagePath,
-      price: `${pricePerNight} ${currency} par nuit`
-    });
-
-    // Sauvegarder l'hôtel dans la base de données
-    const savedHotel = await newHotel.save();
-    res.status(201).json(savedHotel);
-  } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la création de l'hôtel", error: error.message });
-  }
-};
+  };
+  
 
 // Mettre à jour un hôtel
 exports.updateHotel = async (req, res) => {
   try {
-    const { name, address, email, phoneNumber, pricePerNight, currency } = req.body;
+    const { name, address, email, phoneNumber, pricePerNight, currency, image } = req.body;
     const hotelId = req.params.id;
     
     // Trouver l'hôtel existant
@@ -71,17 +74,7 @@ exports.updateHotel = async (req, res) => {
     }
 
     // Vérifier si une nouvelle image est fournie
-    let imagePath = hotel.image;
-    if (req.file) {
-      // Si l'hôtel avait déjà une image, la supprimer
-      if (hotel.image) {
-        const oldImagePath = path.join(__dirname, '..', 'public', hotel.image);
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
-      }
-      imagePath = `/uploads/hotels/${req.file.filename}`;
-    }
+    let imagePath = image || hotel.image; // L'image peut être mise à jour avec la nouvelle URL ou rester inchangée
 
     // Mettre à jour les données de l'hôtel
     const updatedHotel = await Hotel.findByIdAndUpdate(
@@ -93,7 +86,7 @@ exports.updateHotel = async (req, res) => {
         phoneNumber,
         pricePerNight: parseFloat(pricePerNight),
         currency,
-        image: imagePath,
+        image: imagePath, // L'image est stockée comme texte
         price: `${pricePerNight} ${currency} par nuit`
       },
       { new: true }
@@ -116,14 +109,6 @@ exports.deleteHotel = async (req, res) => {
       return res.status(404).json({ message: "Hôtel non trouvé" });
     }
 
-    // Supprimer l'image associée si elle existe
-    if (hotel.image) {
-      const imagePath = path.join(__dirname, '..', 'public', hotel.image);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
-    }
-
     // Supprimer l'hôtel de la base de données
     await Hotel.findByIdAndDelete(hotelId);
     
@@ -132,3 +117,4 @@ exports.deleteHotel = async (req, res) => {
     res.status(500).json({ message: "Erreur lors de la suppression de l'hôtel", error: error.message });
   }
 };
+
